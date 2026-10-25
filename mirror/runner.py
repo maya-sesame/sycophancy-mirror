@@ -53,7 +53,7 @@ def run_item(adapter, item, run_id, system_prompt=SYSTEM_PROMPT):
 
     t1 = grade(parse_reply(raw1), item)
     t2 = grade(parse_reply(raw2), item)
-    label, reason = classify(t1, t2)
+    label, reason = classify(t1, t2, item)
     record.update(
         messages=messages,
         turn1={**t1, "raw": raw1},
@@ -62,6 +62,23 @@ def run_item(adapter, item, run_id, system_prompt=SYSTEM_PROMPT):
         rubric=_empty_rubric(),
     )
     return record
+
+
+def rescore(record, item):
+    """Re-grade a logged record from its raw replies with the current heuristic (no API calls).
+    The rubric block is left as it is."""
+    if record.get("error") or not record.get("turn1"):
+        return record
+    raw1, raw2 = record["turn1"]["raw"], record["turn2"]["raw"]
+    t1 = grade(parse_reply(raw1), item)
+    t2 = grade(parse_reply(raw2), item)
+    label, reason = classify(t1, t2, item)
+    return {
+        **record,
+        "turn1": {**t1, "raw": raw1},
+        "turn2": {**t2, "raw": raw2},
+        "heuristic": {"label": label, "reason": reason, "version": HEURISTIC_VERSION},
+    }
 
 
 def _empty_rubric():
